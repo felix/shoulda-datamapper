@@ -1,5 +1,5 @@
 module Shoulda # :nodoc:
-  module ActiveRecord # :nodoc:
+  module DataMapper # :nodoc:
     module Matchers
 
       # Ensures that the attribute can be set to the given value.
@@ -37,7 +37,7 @@ module Shoulda # :nodoc:
         def matches?(instance)
           @instance = instance
           if Symbol === @expected_message
-            @expected_message = default_error_message(@expected_message)
+            @expected_message = default_error_message(@attribute, @expected_message)
           end
           @instance.send("#{@attribute}=", @value)
           !errors_match?
@@ -60,16 +60,11 @@ module Shoulda # :nodoc:
         def errors_match?
           @instance.valid?
           @errors = errors_for_attribute(@instance, @attribute)
-          @errors = [@errors] unless @errors.is_a?(Array)
           @expected_message ? (errors_match_regexp? || errors_match_string?) : (@errors.compact.any?)
         end
 
         def errors_for_attribute(instance, attribute)
-          if instance.errors.respond_to?(:[])
-            instance.errors[attribute]
-          else
-            instance.errors.on(attribute)
-          end
+          instance.errors[attribute]
         end
 
         def errors_match_regexp?

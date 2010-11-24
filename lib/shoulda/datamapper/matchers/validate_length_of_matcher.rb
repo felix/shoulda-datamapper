@@ -1,5 +1,5 @@
 module Shoulda # :nodoc:
-  module ActiveRecord # :nodoc:
+  module DataMapper # :nodoc:
     module Matchers
 
       # Ensures that the length of the attribute is validated.
@@ -20,20 +20,25 @@ module Shoulda # :nodoc:
       #   <tt>is_equal_to</tt>.
       #
       # Examples:
-      #   it { should ensure_length_of(:password).
+      #   it { should validate_length_of(:password).
       #                 is_at_least(6).
       #                 is_at_most(20) }
-      #   it { should ensure_length_of(:name).
+      #   it { should validate_length_of(:name).
       #                 is_at_least(3).
       #                 with_short_message(/not long enough/) }
-      #   it { should ensure_length_of(:ssn).
+      #   it { should validate_length_of(:ssn).
       #                 is_equal_to(9).
       #                 with_message(/is invalid/) }
-      def ensure_length_of(attr)
-        EnsureLengthOfMatcher.new(attr)
+      #   it { should validate_length_of(:ssn).
+      #                 is(9).
+      #                 with_message(/is invalid/) }
+      #   it { should validate_length_of(:foo).
+      #                 is_in_range(4..9) }
+      def validate_length_of(attr)
+        ValidateLengthOfMatcher.new(attr)
       end
 
-      class EnsureLengthOfMatcher < ValidationMatcher # :nodoc:
+      class ValidateLengthOfMatcher < ValidationMatcher # :nodoc:
         include Helpers
 
         def is_at_least(length)
@@ -47,11 +52,19 @@ module Shoulda # :nodoc:
           @long_message ||= :too_long
           self
         end
-
+        
         def is_equal_to(length)
           @minimum = length
           @maximum = length
           @short_message ||= :wrong_length
+          self
+        end
+        alias_method :is, :is_equal_to
+
+        def is_in_range(range)
+          @minimum = range.min
+          @maximum = range.max
+          @short_message ||= :not_in_range
           self
         end
 
@@ -84,31 +97,23 @@ module Shoulda # :nodoc:
         def matches?(subject)
           super(subject)
           translate_messages!
-          disallows_lower_length &&
-            allows_minimum_length &&
-            ((@minimum == @maximum) ||
-              (disallows_higher_length &&
-              allows_maximum_length))
+          disallows_lower_length && allows_minimum_length && ((@minimum == @maximum) || (disallows_higher_length && allows_maximum_length))
         end
 
         private
 
         def translate_messages!
           if Symbol === @short_message
-            @short_message = default_error_message(@short_message,
-                                                   :count => @minimum)
+            @short_message = default_error_message(@attribute, @short_message, {:count => @minimum, :low => @minimum, :high => @maximum})
           end
 
           if Symbol === @long_message
-            @long_message = default_error_message(@long_message,
-                                                  :count => @maximum)
+            @long_message = default_error_message(@attribute, @long_message, {:count => @maximum, :low => @minimum, :high => @maximum})
           end
         end
 
         def disallows_lower_length
-          @minimum == 0 ||
-            @minimum.nil? ||
-            disallows_length_of(@minimum - 1, @short_message)
+          @minimum == 0 || @minimum.nil? || disallows_length_of(@minimum - 1, @short_message)
         end
 
         def disallows_higher_length

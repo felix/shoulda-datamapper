@@ -1,13 +1,13 @@
 require 'test_helper'
 
-class ValidatePresenceOfMatcherTest < ActiveSupport::TestCase # :nodoc:
+class ValidatePresenceOfMatcherTest < ShouldaDataMapperTest # :nodoc:
 
   context "a required attribute" do
     setup do
-      define_model :example, :attr => :string do
+      @model = define_model :example do
+        property :attr, String
         validates_presence_of :attr
-      end
-      @model = Example.new
+      end.new
     end
 
     should "require a value" do
@@ -21,7 +21,9 @@ class ValidatePresenceOfMatcherTest < ActiveSupport::TestCase # :nodoc:
 
   context "an optional attribute" do
     setup do
-      @model = define_model(:example, :attr => :string).new
+      @model = define_model :example do
+        property :attr, String
+      end.new
     end
 
     should "not require a value" do
@@ -33,7 +35,7 @@ class ValidatePresenceOfMatcherTest < ActiveSupport::TestCase # :nodoc:
     setup do
       define_model :child
       @model = define_model :parent do
-        has_many :children
+        has n, :children
         validates_presence_of :children
       end.new
     end
@@ -47,7 +49,7 @@ class ValidatePresenceOfMatcherTest < ActiveSupport::TestCase # :nodoc:
     setup do
       define_model :child
       @model = define_model :parent do
-        has_many :children
+        has n, :children
       end.new
     end
 
@@ -60,7 +62,7 @@ class ValidatePresenceOfMatcherTest < ActiveSupport::TestCase # :nodoc:
     setup do
       define_model :child
       @model = define_model :parent do
-        has_and_belongs_to_many :children
+        has n, :children
         validates_presence_of :children
       end.new
     end
@@ -74,7 +76,7 @@ class ValidatePresenceOfMatcherTest < ActiveSupport::TestCase # :nodoc:
     setup do
       define_model :child
       @model = define_model :parent do
-        has_and_belongs_to_many :children
+        has n, :children
       end.new
     end
 

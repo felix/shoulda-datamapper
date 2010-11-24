@@ -1,263 +1,187 @@
 require 'test_helper'
 
-class AssociationMatcherTest < ActiveSupport::TestCase # :nodoc:
+class AssociationMatcherTest < ShouldaDataMapperTest # :nodoc:
 
-  context "belong_to" do
+  context "valid one-to-many model" do
     setup do
-      @matcher = belong_to(:parent)
-    end
-
-    should "accept a good association with the default foreign key" do
-      define_model :parent
-      define_model :child, :parent_id => :integer do
-        belongs_to :parent
+      define_model :parent do
+        has n, :children
       end
-      assert_accepts @matcher, Child.new
-    end
-
-    should "reject a nonexistent association" do
-      define_model :child
-      assert_rejects @matcher, Child.new
-    end
-
-    should "reject an association of the wrong type" do
-      define_model :parent, :child_id => :integer
-      child_class = define_model :child do
-        has_one :parent
-      end
-      assert_rejects @matcher, Child.new
-    end
-
-    should "reject an association that has a nonexistent foreign key" do
-      define_model :parent
       define_model :child do
         belongs_to :parent
       end
-      assert_rejects @matcher, Child.new
+    end
+    
+    should "accept a valid has n relationship" do
+      assert_accepts have_many(:children), Parent.new
     end
 
-    should "accept an association with an existing custom foreign key" do
-      define_model :parent
-      define_model :child, :guardian_id => :integer do
-        belongs_to :parent, :foreign_key => 'guardian_id'
+    should "accept a valid belong_to relationship" do
+      assert_accepts belong_to(:parent), Child.new
+    end
+    
+    should "reject an invalid has n relationship" do
+      assert_rejects have_many(:parents), Child.new
+    end
+    
+    should "reject an invalid belong_to relationship" do
+      assert_rejects belong_to(:children), Parent.new
+    end
+    
+    should "accept a valid one-to-many association" do
+      assert_accepts have_one_to_many_association_with(:children), Parent.new
+    end
+    
+    should "reject invalid one-to-many association" do
+      assert_rejects have_one_to_many_association_with(:parents), Child.new
+    end
+  end
+
+  context "valid one-to-many model with optional child-parent" do
+    setup do
+      define_model :parent do
+        has n, :children
       end
-      assert_accepts @matcher, Child.new
-    end
-
-    should "accept a polymorphic association" do
-      define_model :child, :parent_type => :string,
-                                :parent_id   => :integer do
-        belongs_to :parent, :polymorphic => true
+      define_model :child do
+        belongs_to :parent, :required => false
       end
-      assert_accepts @matcher, Child.new
+    end
+    
+    should "accept a valid has n relationship" do
+      assert_accepts have_many(:children), Parent.new
     end
 
-    should "accept an association with a valid :dependent option" do
-      define_model :parent
-      define_model :child, :parent_id => :integer do
-        belongs_to :parent, :dependent => :destroy
+    should "accept a valid optional belong_to relationship" do
+      assert_accepts belong_to(:parent).using_optional_parent, Child.new
+    end
+    
+    should "reject an invalid has n relationship" do
+      assert_rejects have_many(:parents), Child.new
+    end
+
+    should "reject a mandatory belong_to relationship" do
+      assert_rejects belong_to(:parent), Child.new
+    end
+
+    should "reject an invalid belong_to relationship" do
+      assert_rejects belong_to(:children), Parent.new
+    end
+    
+    should "accept a valid association" do
+      assert_accepts have_one_to_many_association_with(:children).using_optional_parent, Parent.new
+    end
+    
+    should "reject invalid association" do
+      assert_rejects have_one_to_many_association_with(:children), Child.new
+      assert_rejects have_one_to_many_association_with(:parents), Child.new
+      assert_rejects have_one_to_many_association_with(:parents).using_optional_parent, Child.new
+    end
+  end
+
+  context "valid one-to-one model" do
+    setup do
+      define_model :parent do
+        has 1, :children
       end
-      assert_accepts @matcher.dependent(:destroy), Child.new
-    end
-
-    should "reject an association with a bad :dependent option" do
-      define_model :parent
-      define_model :child, :parent_id => :integer do
+      define_model :child do
         belongs_to :parent
       end
-      assert_rejects @matcher.dependent(:destroy), Child.new
     end
-  end
-
-  context "have_many" do
-    setup do
-      @matcher = have_many(:children)
+    
+    should "accept a valid has 1 relationship" do
+      assert_accepts have_one(:children), Parent.new
     end
 
-    should "accept a valid association without any options" do
-      define_model :child, :parent_id => :integer
-      define_model :parent do
-        has_many :children
-      end
-      assert_accepts @matcher, Parent.new
+    should "accept a valid belong_to relationship" do
+      assert_accepts belong_to(:parent), Child.new
+    end
+    
+    should "reject an invalid has 1 relationship" do
+      assert_rejects have_many(:parents), Child.new
     end
 
-    should "accept a valid association with a :through option" do
-      define_model :child
-      define_model :conception, :child_id  => :integer,
-                                     :parent_id => :integer do
-        belongs_to :child
-      end
-      define_model :parent do
-        has_many :conceptions
-        has_many :children, :through => :conceptions
-      end
-      assert_accepts @matcher, Parent.new
+    should "reject an invalid belong_to relationship" do
+      assert_rejects belong_to(:children), Parent.new
     end
-
-    should "accept a valid association with an :as option" do
-      define_model :child, :guardian_type => :string,
-                                :guardian_id   => :integer
-      define_model :parent do
-        has_many :children, :as => :guardian
-      end
-      assert_accepts @matcher, Parent.new
-    end
-
-    should "reject an association that has a nonexistent foreign key" do
-      define_model :child
-      define_model :parent do
-        has_many :children
-      end
-      assert_rejects @matcher, Parent.new
-    end
-
-    should "reject an association with a bad :as option" do
-      define_model :child, :caretaker_type => :string,
-                                :caretaker_id   => :integer
-      define_model :parent do
-        has_many :children, :as => :guardian
-      end
-      assert_rejects @matcher, Parent.new
-    end
-
-    should "reject an association that has a bad :through option" do
-      define_model :child, :parent_id => :integer
-      define_model :parent do
-        has_many :children
-      end
-      assert_rejects @matcher.through(:conceptions),
-        Parent.new,
-        :message => /does not have any relationship to conceptions/
-    end
-
-    should "reject an association that has the wrong :through option" do
-      define_model :child
-      define_model :conception, :child_id  => :integer,
-                                     :parent_id => :integer do
-        belongs_to :child
-      end
-      define_model :parent do
-        has_many :conceptions
-        has_many :relationships
-        has_many :children, :through => :conceptions
-      end
-      assert_rejects @matcher.through(:relationships),
-                     Parent.new,
-                     :message => /through relationships, but got it through conceptions/
-    end
-
-    should "accept an association with a valid :dependent option" do
-      define_model :child, :parent_id => :integer
-      define_model :parent do
-        has_many :children, :dependent => :destroy
-      end
-      assert_accepts @matcher.dependent(:destroy), Parent.new
-    end
-
-    should "reject an association with a bad :dependent option" do
-      define_model :child, :parent_id => :integer
-      define_model :parent do
-        has_many :children
-      end
-      assert_rejects @matcher.dependent(:destroy), Parent.new
-    end
-  end
-
-  context "have_one" do
-    setup do
-      @matcher = have_one(:detail)
-    end
-
-    should "accept a valid association without any options" do
-      define_model :detail, :person_id => :integer
-      define_model :person do
-        has_one :detail
-      end
-      assert_accepts @matcher, Person.new
-    end
-
-    should "accept a valid association with an :as option" do
-      define_model :detail, :detailable_id   => :integer,
-                                  :detailable_type => :string
-      define_model :person do
-        has_one :detail, :as => :detailable
-      end
-      assert_accepts @matcher, Person.new
-    end
-
-    should "reject an association that has a nonexistent foreign key" do
-      define_model :detail
-      define_model :person do
-        has_one :detail
-      end
-      assert_rejects @matcher, Person.new
-    end
-
-    should "reject an association with a bad :as option" do
-      define_model :detail, :detailable_id   => :integer,
-                                  :detailable_type => :string
-      define_model :person do
-        has_one :detail, :as => :describable
-      end
-      assert_rejects @matcher, Person.new
-    end
-
-    should "accept an association with a valid :dependent option" do
-      define_model :detail, :person_id => :integer
-      define_model :person do
-        has_one :detail, :dependent => :destroy
-      end
-      assert_accepts @matcher.dependent(:destroy), Person.new
-    end
-
-    should "reject an association with a bad :dependent option" do
-      define_model :detail, :person_id => :integer
-      define_model :person do
-        has_one :detail
-      end
-      assert_rejects @matcher.dependent(:destroy), Person.new
-    end
-  end
-
-  context "have_and_belong_to_many" do
-    setup do
-      @matcher = have_and_belong_to_many(:relatives)
-    end
-
+    
     should "accept a valid association" do
-      define_model :relatives
-      define_model :person do
-        has_and_belongs_to_many :relatives
-      end
-      define_model :people_relative, :person_id   => :integer,
-                                          :relative_id => :integer
-      assert_accepts @matcher, Person.new
+      assert_accepts have_one_to_one_association_with(:children), Parent.new
     end
-
-    should "reject a nonexistent association" do
-      define_model :relatives
-      define_model :person
-      define_model :people_relative, :person_id   => :integer,
-                                          :relative_id => :integer
-      assert_rejects @matcher, Person.new
-    end
-
-    should "reject an association with a nonexistent join table" do
-      define_model :relatives
-      define_model :person do
-        has_and_belongs_to_many :relatives
-      end
-      assert_rejects @matcher, Person.new
-    end
-
-    should "reject an association of the wrong type" do
-      define_model :relatives, :person_id => :integer
-      define_model :person do
-        has_many :relatives
-      end
-      assert_rejects @matcher, Person.new
+    
+    should "reject invalid association" do
+      assert_rejects have_one_to_one_association_with(:parents), Child.new
     end
   end
 
+  context "valid one-to-n model" do
+    setup do
+      define_model :parent do
+        has 5, :children
+      end
+      define_model :child do
+        belongs_to :parent
+      end
+    end
+    
+    should "accept a valid has 5 relationship" do
+      assert_accepts have(5, :children), Parent.new
+    end
+
+    should "accept a valid belong_to relationship" do
+      assert_accepts belong_to(:parent), Child.new
+    end
+    
+    should "reject an invalid has 5 relationship" do
+      assert_rejects have(5, :parents), Child.new
+      assert_rejects have(4, :children), Parent.new
+      assert_rejects have(6, :children), Parent.new
+    end
+
+    should "reject an invalid belong_to relationship" do
+      assert_rejects belong_to(:children), Parent.new
+    end
+    
+    should "accept a valid association" do
+      assert_accepts have_one_to_n_association_with(5, :children), Parent.new
+    end
+    
+    should "reject invalid association" do
+      assert_rejects have_one_to_n_association_with(5, :parents), Child.new
+      assert_rejects have_one_to_n_association_with(4, :children), Child.new
+      assert_rejects have_one_to_n_association_with(6, :children), Child.new
+      assert_rejects have_one_to_n_association_with(0, :children), Child.new
+    end
+  end
+
+  context "invalid one-to-many model" do
+    setup do
+      define_model :parent do
+        has n, :children
+      end
+      define_model :child do
+      end
+    end
+    
+    should "reject invalid one-to-many associations" do
+      assert_rejects have_one_to_many_association_with(:parents), Child.new
+      assert_rejects have_one_to_many_association_with(:children), Parent.new
+    end
+  end
+  
+  context "valid many-to-many association with default join model" do
+    setup do
+      define_model :tag do
+        has n, :photos, :through => DataMapper::Resource
+      end
+      define_model :photo do
+        has n, :tags, :through => DataMapper::Resource
+      end
+    end
+      
+    should "accept valid association" do
+      assert_accepts have_many_to_many_association_with(:photos), Tag.new
+      assert_accepts have_many_to_many_association_with(:tags), Photo.new
+    end
+  end
+    
 end

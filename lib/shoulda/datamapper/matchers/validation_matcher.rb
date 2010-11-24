@@ -1,5 +1,5 @@
 module Shoulda # :nodoc:
-  module ActiveRecord # :nodoc:
+  module DataMapper # :nodoc:
     module Matchers
 
       class ValidationMatcher # :nodoc:
@@ -22,10 +22,7 @@ module Shoulda # :nodoc:
         private
 
         def allows_value_of(value, message = nil)
-          allow = AllowValueMatcher.
-            new(value).
-            for(@attribute).
-            with_message(message)
+          allow = AllowValueMatcher.new(value).for(@attribute).with_message(message)
           if allow.matches?(@subject)
             @negative_failure_message = allow.failure_message
             true
@@ -36,10 +33,7 @@ module Shoulda # :nodoc:
         end
 
         def disallows_value_of(value, message = nil)
-          disallow = AllowValueMatcher.
-            new(value).
-            for(@attribute).
-            with_message(message)
+          disallow = AllowValueMatcher.new(value).for(@attribute).with_message(message)
           if disallow.matches?(@subject)
             @failure_message = disallow.negative_failure_message
             false

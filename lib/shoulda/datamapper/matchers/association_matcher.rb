@@ -1,5 +1,5 @@
 module Shoulda # :nodoc:
-  module ActiveRecord # :nodoc:
+  module DataMapper # :nodoc:
     module Matchers
 
       # Ensure that the belongs_to relationship exists.
@@ -7,55 +7,73 @@ module Shoulda # :nodoc:
       #   it { should belong_to(:parent) }
       #
       def belong_to(name)
-        AssociationMatcher.new(:belongs_to, name)
+        AssociationMatcher.new(:belongs_to, 1, name)
       end
 
-      # Ensures that the has_many relationship exists.  Will also test that the
-      # associated table has the required columns.  Works with polymorphic
-      # associations.
+      # Ensures that the has x relationship exists.  
       #
-      # Options:
-      # * <tt>through</tt> - association name for <tt>has_many :through</tt>
-      # * <tt>dependent</tt> - tests that the association makes use of the
-      #   dependent option.
+      #   it { should have(500, :friends) }
+      #   it { should have(3, :enemy) }
       #
-      # Example:
+      def have(qty, name)
+        AssociationMatcher.new(:has_n, qty, name)
+      end
+
+      # Ensures that the has n relationship exists.  
+      #
       #   it { should have_many(:friends) }
-      #   it { should have_many(:enemies).through(:friends) }
-      #   it { should have_many(:enemies).dependent(:destroy) }
       #
       def have_many(name)
-        AssociationMatcher.new(:has_many, name)
+        AssociationMatcher.new(:has_many, Infinity, name)
       end
 
-      # Ensure that the has_one relationship exists.  Will also test that the
-      # associated table has the required columns.  Works with polymorphic
-      # associations.
+      # Ensures that the has n relationship exists.  
       #
-      # Options:
-      # * <tt>:dependent</tt> - tests that the association makes use of the
-      #   dependent option.
-      #
-      # Example:
-      #   it { should have_one(:god) } # unless hindu
+      #   it { should have_one(:life) }
       #
       def have_one(name)
-        AssociationMatcher.new(:has_one, name)
+        AssociationMatcher.new(:has_one, 1, name)
+      end
+      
+      # Ensures that the one-many relationship exists. Both sides of the model are checked.
+      #
+      #   it { should have_one_to_many_association_with(:gadgets) }
+      #
+      def have_one_to_many_association_with(name)
+        AssociationMatcher.new(:has_many_and_belongs_to, Infinity, name)
+      end
+      
+      # Ensures that the one-many relationship exists. Both sides of the model are checked.
+      #
+      #   it { should have_one_to_one_association_with(:spouse) }
+      #
+      def have_one_to_one_association_with(name)
+        AssociationMatcher.new(:has_one_and_belongs_to, 1, name)
       end
 
-      # Ensures that the has_and_belongs_to_many relationship exists, and that
-      # the join table is in place.
+      # Ensures that the one-many relationship exists. Both sides of the model are checked.
       #
-      #   it { should have_and_belong_to_many(:posts) }
+      #   it { should have_one_to_n_association_with(10, :fingers) }
       #
-      def have_and_belong_to_many(name)
-        AssociationMatcher.new(:has_and_belongs_to_many, name)
+      def have_one_to_n_association_with(qty, name)
+        AssociationMatcher.new(:has_n_and_belongs_to, qty, name)
       end
+
+      # Ensures that the many-many relationship exists. Both sides of the model are checked.
+      #
+      #   it { should have_many_to_many_association_with(:tags) }
+      #
+      def have_many_to_many_association_with(name)
+        AssociationMatcher.new(:has_many_and_belongs_to_many, Infinity, name)
+      end
+
 
       class AssociationMatcher # :nodoc:
-        def initialize(macro, name)
+        
+        def initialize(macro, qty, name)
           @macro = macro
-          @name  = name
+          @name = name
+          @qty = qty
         end
 
         def through(through)
@@ -63,19 +81,16 @@ module Shoulda # :nodoc:
           self
         end
 
-        def dependent(dependent)
-          @dependent = dependent
+        def using_optional_parent
+          @using_optional_parent = true
           self
         end
 
         def matches?(subject)
           @subject = subject
-          association_exists? &&
-            macro_correct? &&
-            foreign_key_exists? &&
-            through_association_valid? &&
-            dependent_correct? &&
-            join_table_exists?
+          @through ||= Object::DataMapper::Resource
+          @using_optional_parent ||= false
+          association?
         end
 
         def failure_message
@@ -89,138 +104,129 @@ module Shoulda # :nodoc:
         def description
           description = "#{macro_description} #{@name}"
           description += " through #{@through}" if @through
-          description += " dependent => #{@dependent}" if @dependent
           description
         end
 
         protected
-
-        def association_exists?
-          if reflection.nil?
-            @missing = "no association called #{@name}"
-            false
-          else
-            true
+        
+        def association?
+          case @macro
+          when :has_one
+            one_to_one_association(model_class, @name)
+          when :has_n
+            one_to_n_association(model_class, @name, @qty)
+          when :has_many
+            one_to_many_association(model_class, @name)
+          when :belongs_to
+            many_to_one_association(model_class, @name, options)
+          when :has_one_and_belongs_to, :has_n_and_belongs_to, :has_many_and_belongs_to
+            reverse_class = Object.const_get(Extlib::Inflection::classify(@name.to_s))
+            reverse_name = model_class.to_s.snake_case
+            many_to_one_association(reverse_class, reverse_name, options) &&
+              case @macro
+              when :has_one_and_belongs_to
+                one_to_one_association(model_class, @name)
+              when :has_n_and_belongs_to
+                one_to_n_association(model_class, @name, @qty)
+              when :has_many_and_belongs_to
+                one_to_many_association(model_class, @name)
+              end 
+          when :has_many_and_belongs_to_many
+            reverse_class = Object.const_get(Extlib::Inflection::classify(@name.to_s))
+            reverse_name = Extlib::Inflection::tableize(model_class.to_s)
+            many_to_many_association(model_class, @name, {:through=>@through}) &&
+              many_to_many_association(reverse_class, reverse_name, {:through=>@through}) &&
+              join_model
           end
         end
-
-        def macro_correct?
-          if reflection.macro == @macro
-            true
-          else
-            @missing = "actual association type was #{reflection.macro}"
-            false
-          end
+        
+        def options
+          options={}
+          options = {:required => false, :min=>0} if @using_optional_parent
+          options
+        end
+        
+        def join_model
+          return true if (@through == Object::DataMapper::Resource)
+          
+          join_model_class = Object.const_get(Extlib::Inflection::classify(@through))
+          join1_name = model_class.to_s.snake_case
+          join2_name = Object.const_get(Extlib::Inflection::classify(@name.to_s)).to_s.snake_case
+          
+          many_to_one_association(join_model_class, join1_name) && 
+            many_to_one_association(join_model_class, join2_name)
         end
 
-        def foreign_key_exists?
-          !(belongs_foreign_key_missing? || has_foreign_key_missing?)
+        def one_to_one_association(klass, name, opts={})
+          association(klass, name, Object::DataMapper::Associations::OneToOne::Relationship, {:min=>1, :max=>1}.merge(opts)) 
+        end
+        
+        def one_to_many_association(klass, name, opts={})
+          association(klass, name, Object::DataMapper::Associations::OneToMany::Relationship, {:min=>0, :max=>Infinity}.merge(opts)) 
         end
 
-        def belongs_foreign_key_missing?
-          @macro == :belongs_to && !class_has_foreign_key?(model_class)
+        def one_to_n_association(klass, name, n, opts={})
+          association(klass, name, Object::DataMapper::Associations::OneToMany::Relationship, {:min=>n, :max=>n}.merge(opts)) 
         end
 
-        def has_foreign_key_missing?
-          [:has_many, :has_one].include?(@macro) &&
-            !through? &&
-            !class_has_foreign_key?(associated_class)
+        def many_to_one_association(klass, name, opts={})
+          association(klass, name, Object::DataMapper::Associations::ManyToOne::Relationship, {:min=>1, :max=>1}.merge(opts)) 
         end
 
-        def through_association_valid?
-          @through.nil? || (through_association_exists? && through_association_correct?)
+        def many_to_many_association(klass, name, opts={})
+          association(klass, name, Object::DataMapper::Associations::ManyToMany::Relationship, {:min=>0, :max=>Infinity}.merge(opts)) 
         end
 
-        def through_association_exists?
-          if through_reflection.nil?
-            @missing = "#{model_class.name} does not have any relationship to #{@through}"
-            false
-          else
-            true
-          end
+        def association(klass, name, type, options={})
+          relationship = klass.relationships[name.to_s]
+          relationship && 
+            (relationship.class == type) && 
+            (options.to_a.all? { |opt| relationship.options.to_a.include? opt})
         end
-
-        def through_association_correct?
-          if @through == reflection.options[:through]
-            true
-          else
-            @missing = "Expected #{model_class.name} to have #{@name} through #{@through}, " <<
-              "but got it through #{reflection.options[:through]}"
-            false
-          end
-        end
-
-        def dependent_correct?
-          if @dependent.nil? || @dependent.to_s == reflection.options[:dependent].to_s
-            true
-          else
-            @missing = "#{@name} should have #{@dependent} dependency"
-            false
-          end
-        end
-
-        def join_table_exists?
-          if @macro != :has_and_belongs_to_many ||
-              ::ActiveRecord::Base.connection.tables.include?(join_table.to_s)
-            true
-          else
-            @missing = "join table #{join_table} doesn't exist"
-            false
-          end
-        end
-
-        def class_has_foreign_key?(klass)
-          if klass.column_names.include?(foreign_key.to_s)
-            true
-          else
-            @missing = "#{klass} does not have a #{foreign_key} foreign key."
-            false
-          end
-        end
-
+        
         def model_class
           @subject.class
         end
-
-        def join_table
-          reflection.options[:join_table]
-        end
-
-        def associated_class
-          reflection.klass
-        end
-
-        def foreign_key
-          reflection.primary_key_name
-        end
-
-        def through?
-          reflection.options[:through]
-        end
-
-        def reflection
-          @reflection ||= model_class.reflect_on_association(@name)
-        end
-
-        def through_reflection
-          @through_reflection ||= model_class.reflect_on_association(@through)
-        end
-
+        
         def expectation
-          "#{model_class.name} to have a #{@macro} association called #{@name}"
+          case @macro
+          when :has_one
+            "class '#{model_class.name}' to have association 'has 1, :#{@name}'"
+          when :has_n
+            "class '#{model_class.name}' to have association 'has #{@qty}, :#{@name}'"
+          when :has_many
+            "class '#{model_class.name}' to have association 'has n, :#{@name}'"
+          when :belongs_to
+            "class '#{model_class.name}' to have association 'belongs_to, :#{@name}'"
+          when :has_one_and_belongs_to, :has_n_and_belongs_to, :has_many_and_belongs_to
+            reverse_class = Object.const_get(Extlib::Inflection::classify(@name.to_s))
+            reverse_name = model_class.to_s.snake_case
+              case @macro
+              when :has_one_and_belongs_to
+                "class '#{model_class.name}' to have association 'has 1, :#{@name}' and class '#{reverse_class.to_str}' to have association 'belongs_to :#{reverse_name}'"
+              when :has_n_and_belongs_to
+                "class '#{model_class.name}' to have association 'has #{@qty}, :#{@name}' and class '#{reverse_class.to_str}' to have association 'belongs_to :#{reverse_name}'"
+              when :has_many_and_belongs_to
+                "class '#{model_class.name}' to have association 'has n, :#{@name}' and class '#{reverse_class.to_str}' to have association 'belongs_to :#{reverse_name}'"
+              end 
+          when :has_many_and_belongs_to_many
+            reverse_class = Object.const_get(Extlib::Inflection::classify(@name.to_s))
+            reverse_name = Extlib::Inflection::tableize(model_class.to_s)
+            join_model_class = Object.const_get(Extlib::Inflection::classify(@through))
+            join1_name = model_class.to_s.snake_case
+            join2_name = reverse_class.to_s.snake_case
+            "class '#{model_class.name}' to have association 'has n, :#{@name}, :through => :#{@through}' and class '#{reverse_class.to_s}' to have association 'has n, :#{reverse_name}, :through => :#{@through}' and class '#{join_model_class}' to have associations 'belongs_to :#{join1_name}, :key => true' and 'belongs_to :#{join2_name}, :key => true'"
+          end
         end
 
         def macro_description
           case @macro.to_s
           when 'belongs_to' then 'belong to'
-          when 'has_many'   then 'have many'
-          when 'has_one'    then 'have one'
-          when 'has_and_belongs_to_many' then
-            'have and belong to many'
+          when 'has_n' then 'have many'
+          when 'has_one' then 'have one'
           end
         end
       end
-
     end
   end
 end

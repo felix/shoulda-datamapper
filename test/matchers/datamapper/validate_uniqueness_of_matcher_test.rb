@@ -1,13 +1,15 @@
 require 'test_helper'
 
-class ValidateUniquenessOfMatcherTest < ActiveSupport::TestCase # :nodoc:
+class ValidateUniquenessOfMatcherTest < ShouldaDataMapperTest # :nodoc:
 
   context "a unique attribute" do
     setup do
-      @model = define_model(:example, :attr  => :string,
-                                           :other => :integer) do
+      @model = define_model :example do
+        property :attr, String
+        property :other, Integer
         validates_uniqueness_of :attr
       end.new
+      recreate_database
     end
 
     context "with an existing value" do
@@ -30,7 +32,7 @@ class ValidateUniquenessOfMatcherTest < ActiveSupport::TestCase # :nodoc:
 
     context "without an existing value" do
       setup do
-        assert_nil Example.find(:first)
+        assert_nil Example.first
         @matcher = validate_uniqueness_of(:attr)
       end
 
@@ -45,12 +47,29 @@ class ValidateUniquenessOfMatcherTest < ActiveSupport::TestCase # :nodoc:
     end
   end
 
+  context "a unique attribute and an existing value" do
+    setup do
+      @model = define_model :example do
+        property :attr, String
+        validates_uniqueness_of :attr
+      end.new
+      recreate_database
+      Example.create! :attr => "value"
+    end
+
+    should "pass when checking the default message" do
+      assert_accepts validate_uniqueness_of(:attr), @model
+    end
+  end
+
   context "a unique attribute with a custom error and an existing value" do
     setup do
-      @model = define_model(:example, :attr => :string) do
+      @model = define_model :example do
+        property :attr, String
         validates_uniqueness_of :attr, :message => 'Bad value'
       end.new
-      Example.create!
+      recreate_database
+      Example.create! :attr => "value"
     end
 
     should "fail when checking the default message" do
@@ -62,28 +81,28 @@ class ValidateUniquenessOfMatcherTest < ActiveSupport::TestCase # :nodoc:
     end
 
     should "pass when checking a message that matches" do
-      assert_accepts validate_uniqueness_of(:attr).with_message(/bad/i), @model
+      assert_accepts validate_uniqueness_of(:attr).with_message("Bad value"), @model
     end
   end
 
   context "a scoped unique attribute with an existing value" do
     setup do
-      @model = define_model(:example, :attr   => :string,
-                                           :scope1 => :integer,
-                                           :scope2 => :integer) do
+      @model = define_model :example do
+        property :attr, String
+        property :scope1, Integer
+        property :scope2, Integer
         validates_uniqueness_of :attr, :scope => [:scope1, :scope2]
       end.new
+      recreate_database
       @existing = Example.create!(:attr => 'value', :scope1 => 1, :scope2 => 2)
     end
 
     should "pass when the correct scope is specified" do
-      assert_accepts validate_uniqueness_of(:attr).scoped_to(:scope1, :scope2),
-        @model
+      assert_accepts validate_uniqueness_of(:attr).scoped_to(:scope1, :scope2), @model
     end
 
     should "pass when the subject is an existing record" do
-      assert_accepts validate_uniqueness_of(:attr).scoped_to(:scope1, :scope2),
-        @existing
+      assert_accepts validate_uniqueness_of(:attr).scoped_to(:scope1, :scope2), @existing
     end
 
     should "fail when a different scope is specified" do
@@ -101,7 +120,10 @@ class ValidateUniquenessOfMatcherTest < ActiveSupport::TestCase # :nodoc:
 
   context "a non-unique attribute with an existing value" do
     setup do
-      @model = define_model(:example, :attr => :string).new
+      @model = define_model :example do
+        property :attr, String
+      end.new
+      recreate_database
       Example.create!(:attr => 'value')
     end
 
@@ -112,9 +134,11 @@ class ValidateUniquenessOfMatcherTest < ActiveSupport::TestCase # :nodoc:
 
   context "a case sensitive unique attribute with an existing value" do
     setup do
-      @model = define_model(:example, :attr  => :string) do
+      @model = define_model :example do
+        property :attr, String
         validates_uniqueness_of :attr, :case_sensitive => true
       end.new
+      recreate_database
       Example.create!(:attr => 'value')
     end
 
@@ -127,16 +151,18 @@ class ValidateUniquenessOfMatcherTest < ActiveSupport::TestCase # :nodoc:
     end
   end
 
-  context "a case sensitive unique integer attribute with an existing value" do
+  context "a case sensitive unique String attribute with an existing value" do
     setup do
-      @model = define_model(:example, :attr  => :integer) do
+      @model = define_model :example do
+        property :attr, String
         validates_uniqueness_of :attr, :case_sensitive => true
       end.new
+      recreate_database
       Example.create!(:attr => 'value')
     end
 
     should "require a unique, case-insensitive value for that attribute" do
-      assert_accepts validate_uniqueness_of(:attr).case_insensitive, @model
+      assert_rejects validate_uniqueness_of(:attr).case_insensitive, @model
     end
 
     should "require a unique, case-sensitive value for that attribute" do

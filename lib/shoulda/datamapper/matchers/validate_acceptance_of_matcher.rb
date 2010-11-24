@@ -1,5 +1,5 @@
 module Shoulda # :nodoc:
-  module ActiveRecord # :nodoc:
+  module DataMapper # :nodoc:
     module Matchers
 
       # Ensures that the model cannot be saved the given attribute is not

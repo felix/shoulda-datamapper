@@ -1,26 +1,22 @@
-require 'shoulda/active_record/helpers'
-require 'shoulda/active_record/matchers/validation_matcher'
-require 'shoulda/active_record/matchers/allow_value_matcher'
-require 'shoulda/active_record/matchers/ensure_length_of_matcher'
-require 'shoulda/active_record/matchers/ensure_inclusion_of_matcher'
-require 'shoulda/active_record/matchers/validate_presence_of_matcher'
-require 'shoulda/active_record/matchers/validate_format_of_matcher'
-require 'shoulda/active_record/matchers/validate_uniqueness_of_matcher'
-require 'shoulda/active_record/matchers/validate_acceptance_of_matcher'
-require 'shoulda/active_record/matchers/validate_numericality_of_matcher'
-require 'shoulda/active_record/matchers/association_matcher'
-require 'shoulda/active_record/matchers/have_db_column_matcher'
-require 'shoulda/active_record/matchers/have_db_index_matcher'
-require 'shoulda/active_record/matchers/have_readonly_attribute_matcher'
-require 'shoulda/active_record/matchers/allow_mass_assignment_of_matcher'
-
+require 'shoulda/datamapper/helpers'
+require 'shoulda/datamapper/matchers/validation_matcher'
+require 'shoulda/datamapper/matchers/allow_value_matcher'
+require 'shoulda/datamapper/matchers/validate_absence_of_matcher'
+require 'shoulda/datamapper/matchers/validate_acceptance_of_matcher'
+require 'shoulda/datamapper/matchers/validate_confirmation_of_matcher'
+require 'shoulda/datamapper/matchers/validate_length_of_matcher'
+require 'shoulda/datamapper/matchers/validate_presence_of_matcher'
+require 'shoulda/datamapper/matchers/validate_format_of_matcher'
+require 'shoulda/datamapper/matchers/validate_uniqueness_of_matcher'
+require 'shoulda/datamapper/matchers/validate_numericality_of_matcher'
+require 'shoulda/datamapper/matchers/association_matcher'
 
 module Shoulda # :nodoc:
-  module ActiveRecord # :nodoc:
-    # = Matchers for your active record models
+  module DataMapper # :nodoc:
+    # = Matchers for your DataMapper models
     #
     # These matchers will test most of the validations and associations for your
-    # ActiveRecord models.
+    # DataMapper models.
     #
     #   describe User do
     #     it { should validate_presence_of(:name) }

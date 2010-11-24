@@ -2,7 +2,7 @@ module Shoulda # :nodoc:
   module DataMapper # :nodoc:
     module Matchers
 
-      # Ensures that the model is not valid if the given attribute is not
+      # Ensures that the model is not valid if the given attribute is 
       # present.
       #
       # Options:
@@ -11,15 +11,15 @@ module Shoulda # :nodoc:
       #   Defaults to the translation for <tt>:blank</tt>.
       #
       # Examples:
-      #   it { should validate_presence_of(:name) }
-      #   it { should validate_presence_of(:name).
-      #                 with_message(/is not optional/) }
+      #   it { should validate_absence_of(:name) }
+      #   it { should validate_absence_of(:name).
+      #                 with_message(/is not required/) }
       #
-      def validate_presence_of(attr)
-        ValidatePresenceOfMatcher.new(attr)
+      def validate_absence_of(attr)
+        ValidateAbsenceOfMatcher.new(attr)
       end
 
-      class ValidatePresenceOfMatcher < ValidationMatcher # :nodoc:
+      class ValidateAbsenceOfMatcher < ValidationMatcher # :nodoc:
 
         def with_message(message)
           @expected_message = message if message
@@ -28,21 +28,21 @@ module Shoulda # :nodoc:
 
         def matches?(subject)
           super(subject)
-          @expected_message ||= :blank
-          disallows_value_of(blank_value, @expected_message)
+          @expected_message ||= :absence
+          disallows_value_of(false_data(subject), @expected_message)
         end
 
         def description
-          "require #{@attribute} to be set"
+          "require that #{@attribute} is not set"
         end
 
         private
 
-        def blank_value
+        def false_data(subject)
           if collection?
-            []
+            [Object::const_get(Extlib::Inflection::singularize(@attribute.to_s).camel_case).new]
           else
-            nil
+            'XXX'
           end
         end
 
