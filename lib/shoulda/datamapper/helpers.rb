@@ -17,6 +17,8 @@ module Shoulda # :nodoc:
         case key
         when :blank
           "#{attribute.capitalize} must not be blank"
+        when :format
+          "#{attribute.capitalize} has an invalid format"
         when :too_short
           "#{attribute.capitalize} must be at least #{values[:count]} characters long"
         when :too_long

@@ -75,7 +75,12 @@ module Shoulda # :nodoc:
           @name = name
           @qty = qty
         end
-
+        
+        def with_message(message)
+          @expected_message = message
+          self
+        end
+        
         def through(through)
           @through = through
           self
