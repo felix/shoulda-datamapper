@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.version = "0.1.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Colin Gemmell"]
+  s.authors = ["Ben Skelton"]
   s.date = %q{2011-02-07}
   s.description = %q{shoulda matcher for DataMapper ORM}
   s.email = %q{pythonandchips@gmail.com}
