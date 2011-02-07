@@ -1,6 +1,6 @@
 # rcov generated
 coverage
-
+*.swp
 # rdoc generated
 rdoc
 
