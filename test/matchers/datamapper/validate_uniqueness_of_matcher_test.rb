@@ -9,7 +9,7 @@ class ValidateUniquenessOfMatcherTest < ShouldaDataMapperTest # :nodoc:
         property :other, Integer
         validates_uniqueness_of :attr
       end.new
-      DataMapper.auto_migrate!
+      recreate_database
     end
 
     context "with an existing value" do
