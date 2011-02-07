@@ -15,8 +15,8 @@ Jeweler::Tasks.new do |gem|
   gem.name = "shoulda-datamapper"
   gem.homepage = "http://github.com/pythonandchips/shoulda-datamapper"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{shoulda matchers for DataMapper ORM}
+  gem.description = %Q{shoulda matcher for DataMapper ORM}
   gem.email = "pythonandchips@gmail.com"
   gem.authors = ["Colin Gemmell"]
   # Include your dependencies below. Runtime dependencies are required when using your gem,
