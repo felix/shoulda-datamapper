@@ -14,32 +14,18 @@ module Shoulda # :nodoc:
       #   default_error_message(:too_short, :count => 5)
       #   default_error_message(:too_long, :count => 60)
       def default_error_message(attribute, key, values = {})
-        case key
-        when :blank
-          "#{attribute.capitalize} must not be blank"
-        when :format
-          "#{attribute.capitalize} has an invalid format"
+        suffix = case key
         when :too_short
-          "#{attribute.capitalize} must be at least #{values[:count]} characters long"
         when :too_long
-          "#{attribute.capitalize} must be at most #{values[:count]} characters long"
         when :wrong_length
-          "#{attribute.capitalize} must be #{values[:count]} characters long"
-        when :accepted
-          "#{attribute.capitalize} is not accepted"
-        when :not_a_number
-          "#{attribute.capitalize} must be a number"
-        when :taken
-          "#{attribute.capitalize} is already taken"
-        when :absence
-          "#{attribute.capitalize} must be absent"
-        when :confirm
-          "#{attribute.capitalize} does not match the confirmation"
+          I18n.t("errors.messages.#{key}", :count => values[:count])
         when :not_in_range
-          "#{attribute.capitalize} must be between #{values[:low]} and #{values[:high]} characters long"
+          "must be between #{values[:low]} and #{values[:high]} characters long"
         else
-          "default_error_message: not defined for :#{key} given attribute #{attribute}"
+          #"default_error_message: not defined for :#{key} given attribute #{attribute}"
+          I18n.t("errors.messages.#{key}", :value => values)
         end
+        "#{attribute.capitalize} #{suffix}"
       end
     end
   end
