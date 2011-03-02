@@ -8,10 +8,10 @@ Gem::Specification.new do |s|
   s.version = "0.1.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Ben Skelton"]
-  s.date = %q{2011-02-07}
+  s.authors = ["Ben Skelton", "Felix Hanley"]
+  s.date = %q{2011-03-02}
   s.description = %q{shoulda matcher for DataMapper ORM}
-  s.email = %q{pythonandchips@gmail.com}
+  s.email = %q{felix@seconddrawer.com.au}
   s.extra_rdoc_files = [
     "LICENSE.txt",
     "README.rdoc"
@@ -56,10 +56,10 @@ Gem::Specification.new do |s|
     "test/matchers/datamapper/validate_uniqueness_of_matcher_test.rb",
     "test/test_helper.rb"
   ]
-  s.homepage = %q{http://github.com/pythonandchips/shoulda-datamapper}
+  s.homepage = %q{http://github.com/felix/shoulda-datamapper}
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.5.0}
+  s.rubygems_version = %q{1.6.0}
   s.summary = %q{shoulda matchers for DataMapper ORM}
   s.test_files = [
     "test/matchers/datamapper/allow_value_matcher_test.rb",
