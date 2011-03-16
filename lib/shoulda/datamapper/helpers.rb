@@ -21,9 +21,11 @@ module Shoulda # :nodoc:
           I18n.t("errors.messages.#{key}", :count => values[:count])
         when :not_in_range
           "must be between #{values[:low]} and #{values[:high]} characters long"
+        when :taken
+          "has already been taken"
         else
           #"default_error_message: not defined for :#{key} given attribute #{attribute}"
-          I18n.t("errors.messages.#{key}", :value => values)
+          I18n.t("errors.messages.#{key}", :value => (values || nil))
         end
         "#{attribute.capitalize} #{suffix}"
       end
